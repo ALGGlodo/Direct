@@ -63,9 +63,33 @@ async function getNearby(lat, lng){
   }))
 }
 
+async function getTravelTime(start, end){
+  const coords = `${start[1]},${start[0]};${end[1]},${end[0]}`
+  const base = 'https://routing.openstreetmap.de'
+
+  const walkRes = await fetch(`${base}/routed-foot/route/v1/foot/${coords}?overview=false`)
+  const walk = await walkRes.json()
+
+  const carRes = await fetch(`${base}/routed-car/route/v1/driving/${coords}?overview=false`)
+  const car = await carRes.json()
+
+  return {
+    walk: { km: walk.routes[0].distance / 1000, minutes: walk.routes[0].duration / 60 },
+    car: { km: car.routes[0].distance / 1000, minutes: car.routes[0].duration / 60 },
+  }
+}
+
+function formatTime(minutes){
+  const total = Math.round(minutes)
+  if(total < 60) return `${total} min`
+  const h = Math.floor(total / 60)
+  const m = total % 60
+  return m === 0 ? `${h} hr` : `${h} hr ${m} min`
+}
+
 function App() {
   const [nearby, setNearby] = useState([])
-
+  const [times, setTimes] = useState(null)
   const [activePanel, setActivePanel] = useState(null)
   const [places, setPlaces] = useState(null)
   const [from, setFrom] = useState('')
@@ -112,6 +136,12 @@ function App() {
       if(start && end){
         const r = await getCurrentRoute(start, end)
         setRoute(r)
+
+      const t = await getTravelTime(start, end)
+      setTimes(t)
+
+        const found = await getNearby(start[0], start[1])
+        console.log(found)
       
       }
     }
@@ -207,6 +237,34 @@ function App() {
             <Search size={20} />
           </button>
         </div>
+      </div>
+
+      <div className="{`overflow-hidden transition-all duration-300 ${
+        activePanel === 'time' ? 'max-h-60' : 'max-h-0'
+      }`}">
+        <section className="px-5 py-4">
+          <h2 className="text-center text-sm font-bold uppercase text-blue-500">
+            Travel time
+          </h2>
+
+          {times ? (
+            <div className="mt-4 flex justify-around text-center">
+              <div>
+                <p className="text-xs text-gray-600">Walking</p>
+                <p className="font-bold">{formatTime(times.walk.minutes)}</p>
+                <p className="text-xs text-gray-500">{times.walk.km.toFixed(1)} km</p>
+              </div>
+              <div>
+                <p className="text-xs text-gray-600">Car ride</p>
+                <p className="font-bold">{formatTime(times.car.minutes)}</p>
+                <p className="text-xs text-gray-500">{times.car.km.toFixed(1)} km</p>
+                <p className="text-[10px] text-gray-400">No live traffic</p>
+              </div>
+            </div>
+          ) : (
+             <p className="py-4 text-center text-sm text-gray-500">Loading...</p>
+          )}
+        </section>
       </div>
 
       <section className="px-5 py-4">
