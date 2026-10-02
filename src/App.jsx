@@ -37,30 +37,44 @@ async function getCurrentRoute(start, end){
   }
 }
 
-async function getNearby(lat, lng){
+async function getNearby(lat, lng) {
   const query = `[out:json][timeout:15];
-  (
-    nwr(around:500,${lat},${lng})["name"]["shop"];
-    nwr(around:500,${lat},${lng})["name"]["amenity"];
-    nwr(around:500,${lat},${lng})["name"]["tourism"];
-  );
+(
+  nwr(around:500,${lat},${lng})["name"]["shop"];
+  nwr(around:500,${lat},${lng})["name"]["amenity"];
+  nwr(around:500,${lat},${lng})["name"]["tourism"];
+);
   out center 30;`
 
-  const res = await fetch('https://overpass-api.de/api/interpreter', {
-    method: 'POST',
-    headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-    body:  'data=' + encodeURIComponent(query),
-  })
-  const data = await res.json()
+  const servers = [
+    'https://overpass-api.de/api/interpreter',
+    'https://overpass.kumi.systems/api/interpreter',
+  ]
 
-    return data.elements.map((el) => ({
-    id: `${el.type}-${el.id}`,
-    name: el.tags.name,
-    type: el.tags.shop || el.tags.amenity || el.tags.tourism,
-    street: el.tags['addr:street'],
-    lat: el.lat ?? el.center.lat,
-    lng: el.lon ?? el.center.lon,
-  }))
+  for (const url of servers) {
+    try {
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: 'data=' + encodeURIComponent(query),
+      })
+      if (!res.ok) continue
+      const data = await res.json()
+
+      return data.elements.map((el) => ({
+        id: `${el.type}-${el.id}`,
+        name: el.tags.name,
+        type: el.tags.shop || el.tags.amenity || el.tags.tourism,
+        street: el.tags['addr:street'],
+        lat: el.lat ?? el.center.lat,
+        lng: el.lon ?? el.center.lon,
+      }))
+    } catch {
+      // that server failed, so the loop tries the next one
+    }
+  }
+
+  throw new Error('All servers failed')
 }
 
 async function getTravelTime(start, end){
@@ -85,10 +99,10 @@ function formatTime(minutes){
   const h = Math.floor(total / 60)
   const m = total % 60
   return m === 0 ? `${h} hr` : `${h} hr ${m} min`
-}
+} 
 
 function App() {
-  const [nearby, setNearby] = useState([])
+  const [nearby, setNearby] = useState(null)
   const [times, setTimes] = useState(null)
   const [activePanel, setActivePanel] = useState(null)
   const [places, setPlaces] = useState(null)
@@ -100,14 +114,13 @@ function App() {
   const [error, setError] = useState(() =>
   navigator.geolocation ? null : 'Geolocation is not supported by your browser'
 )
-  const hasPosition = position !== null
-  useEffect(() => {
-    if (!hasPosition) return
-    getNearby(position[0], position[1])
-      .then(setNearby)
-      .catch(() => setNearby([]))
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hasPosition])
+    useEffect(() => {
+      if (!places?.end) return
+
+      getNearby(places.end[0], places.end[1])
+        .then(setNearby)
+        .catch(() => setNearby([]))
+    }, [places])
 
   useEffect(() => {
     if (!hasSearched || !navigator.geolocation) return
@@ -139,10 +152,9 @@ function App() {
 
       const t = await getTravelTime(start, end)
       setTimes(t)
-
-        const found = await getNearby(start[0], start[1])
-        console.log(found)
       
+      setNearby(null)
+
       }
     }
 
@@ -228,6 +240,7 @@ function App() {
           >
             <Clock size={20} />
           </button>
+          
           <button
             onClick={() => toggle('search')}
             className={`flex h-11 w-11 items-center justify-center rounded-full border border-black shadow ${
@@ -239,9 +252,39 @@ function App() {
         </div>
       </div>
 
-      <div className="{`overflow-hidden transition-all duration-300 ${
-        activePanel === 'time' ? 'max-h-60' : 'max-h-0'
-      }`}">
+      {activePanel === 'search' && (
+        <section className="px-5 py-4">
+          <form onSubmit={handleSearch} className="flex flex-col gap-2">
+            <p className="text-xs font-bold text-blue-600">FROM:</p>
+            <input
+              type="text"
+              placeholder="Where are you?"
+              value={from}
+              onChange={(e) => setFrom(e.target.value)}
+              className="rounded-xl border border-gray-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+
+            <p className="mt-2 text-xs font-bold text-blue-600">TO:</p>
+            <input
+              type="text"
+              placeholder="Where to?"
+              value={to}
+              onChange={(e) => setTo(e.target.value)}
+              className="rounded-xl border border-gray-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+
+            <button
+              type="submit"
+              className="mt-4 flex items-center justify-center gap-2 rounded-xl bg-blue-600 py-3 font-semibold text-white hover:bg-blue-700"
+            >
+              <Search size={20} />
+              Search
+            </button>
+          </form>
+        </section>
+      )}
+
+      {activePanel === 'time' && (
         <section className="px-5 py-4">
           <h2 className="text-center text-sm font-bold uppercase text-blue-500">
             Travel time
@@ -265,23 +308,25 @@ function App() {
              <p className="py-4 text-center text-sm text-gray-500">Loading...</p>
           )}
         </section>
-      </div>
+        )}
 
       <section className="px-5 py-4">
         <h2 className="border-b border-black pb-2 text-sm font-bold uppercase">
           Nearby establishments
         </h2>
-        {nearby.length === 0 ? (
-          <p className="py-4 text-sm text-gray-500">No nearby places found.</p>
-        ) : (
-          nearby.map((place) => (
-            <div key={place.id} className="py-3">
-              <p className="font-semibold text-blue-500">{place.name}</p>
-              <p className="text-sm text-gray-600">{place.street ?? 'Address not listed'}</p>
-              <p className="text-xs text-blue-400">{place.type}</p>
-            </div>
-          ))
-        )}
+      {nearby === null ? (
+        <p className="py-4 text-sm text-gray-500">Loading nearby places...</p>
+      ) : nearby.length === 0 ? (
+        <p className="py-4 text-sm text-gray-500">No nearby places found.</p>
+      ) : (
+        nearby.map((place) => (
+          <div key={place.id} className="py-3">
+            <p className="font-semibold text-blue-500">{place.name}</p>
+            <p className="text-sm text-gray-600">{place.street ?? 'Address not listed'}</p>
+            <p className="text-xs text-blue-400">{place.type}</p>
+          </div>
+        ))
+      )}
       </section>
 
       <Footer />
