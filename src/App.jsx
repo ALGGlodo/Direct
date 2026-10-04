@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { Search, Clock } from 'lucide-react'
 import Navbar from './Navbar'
 import Footer from './Footer'
+import About from './About'
 import { MapContainer, TileLayer, CircleMarker, Polyline, useMap } from 'react-leaflet'
 import 'leaflet/dist/leaflet.css'
 
@@ -108,6 +109,7 @@ function App() {
   const [places, setPlaces] = useState(null)
   const [from, setFrom] = useState('')
   const [to, setTo] = useState('')  
+  const [page, setPage] = useState('home')
   const [hasSearched, setHasSearched] = useState(false)
   const [position, setPosition] = useState(null)
   const [route, setRoute] = useState(null)
@@ -159,6 +161,22 @@ function App() {
     }
 
     const toggle = (name) => setActivePanel(activePanel === name ? null : name)
+
+    const goHome= () => {
+      setPage('home')
+      setHasSearched(false)
+    }
+    const goAbout = () => { setPage('about')}
+
+    if (page === 'about') {
+        return (
+      <>
+        <Navbar onHome={goHome} onAbout={goAbout} />
+        <About />
+        <Footer />
+      </>
+    )
+    }
 
    if (!hasSearched) {
     return (
