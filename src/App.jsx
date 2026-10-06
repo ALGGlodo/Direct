@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Search, Clock } from 'lucide-react'
+import { Search, Clock, LocateFixed } from 'lucide-react'
 import Navbar from './Navbar'
 import Footer from './Footer'
 import About from './About'
@@ -42,15 +42,16 @@ async function getCurrentRoute(start, end){
 async function getNearby(lat, lng) {
   const query = `[out:json][timeout:15];
 (
-  nwr(around:500,${lat},${lng})["name"]["shop"];
-  nwr(around:500,${lat},${lng})["name"]["amenity"];
-  nwr(around:500,${lat},${lng})["name"]["tourism"];
+  nwr(around:300,${lat},${lng})["name"]["shop"];
+  nwr(around:300,${lat},${lng})["name"]["amenity"];
+  nwr(around:300,${lat},${lng})["name"]["tourism"];
 );
-  out center 30;`
+  out center 20;`
 
   const servers = [
     'https://overpass-api.de/api/interpreter',
     'https://overpass.kumi.systems/api/interpreter',
+    'https://overpass.private.coffee/api/interpreter',
   ]
 
   for (const url of servers) {
@@ -103,6 +104,15 @@ function formatTime(minutes){
   return m === 0 ? `${h} hr` : `${h} hr ${m} min`
 } 
 
+function FollowMe({ position, following }){
+  const map = useMap()
+
+  useEffect(() => {
+    if(following) map.panTo(position)
+  }, [position, following, map])
+    return null
+}
+
 function App() {
   const [nearby, setNearby] = useState(null)
   const [times, setTimes] = useState(null)
@@ -114,6 +124,7 @@ function App() {
   const [hasSearched, setHasSearched] = useState(false)
   const [position, setPosition] = useState(null)
   const [route, setRoute] = useState(null)
+  const [following, setFollowing] = useState(false)
   const [error, setError] = useState(() =>
   navigator.geolocation ? null : 'Geolocation is not supported by your browser'
 )
@@ -260,6 +271,7 @@ function App() {
           {places?.end && <CircleMarker center={places.end} radius={8} pathOptions={{ color: 'red' }} />}
           {route && <Polyline positions={route.line} pathOptions={{ color: 'blue' }} />}
           <FitBounds places={places} />
+          <FollowMe position={position} following={following} />
         </MapContainer>
 
         <div className="absolute right-3 top-3 z-[1000] flex flex-col gap-2">
@@ -271,14 +283,22 @@ function App() {
           >
             <Clock size={20} />
           </button>
-          
+          <button
+            onClick={() => setFollowing(!following)}
+            className={`flex h-11 w-11 items-center justify-center rounded-full border border-black shadow ${
+              following ? 'bg-blue-600 text-white' : 'bg-white text-black'
+            }`}
+          >
+          <LocateFixed size={20} />
+          </button>
+
           <button
             onClick={() => toggle('search')}
             className={`flex h-11 w-11 items-center justify-center rounded-full border border-black shadow ${
               activePanel === 'search' ? 'bg-blue-600 text-white' : 'bg-white text-black'
             }`}
           >
-            <Search size={20} />
+            <Search  size={20} />
           </button>
         </div>
       </div>
@@ -311,6 +331,7 @@ function App() {
               <Search size={20} />
               Search
             </button>
+
           </form>
         </section>
       )}
