@@ -108,6 +108,7 @@ function FollowMe({ position, following }){
   const map = useMap()
 
   useEffect(() => {
+    console.log('follow:', position)
     if(following) map.panTo(position)
   }, [position, following, map])
     return null
