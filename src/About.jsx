@@ -29,7 +29,7 @@ function About() {
         </p>
       </section>
 
-      <section className="bg-blue-50 px-6 py-10">
+      <section className="bg-blue-100 px-6 py-10">
         <h2 className="text-center text-xl font-bold text-blue-600">
           Helping new travelers
         </h2>

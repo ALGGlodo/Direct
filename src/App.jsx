@@ -181,7 +181,7 @@ function App() {
    if (!hasSearched) {
     return (
       <>
-        <Navbar onHome={() => setHasSearched(false)} />
+        <Navbar onHome={goHome} onAbout={goAbout} />
 
         <section className="flex min-h-[80dvh] items-center justify-center bg-white px-6">
           <form onSubmit={handleSearch} className="w-full max-w-md">
@@ -229,7 +229,7 @@ function App() {
 
   return (
     <div className="flex min-h-dvh flex-col">
-      <Navbar onHome={() => setHasSearched(false)} />
+      <Navbar onHome={goHome} onAbout={goAbout} />
 
       <div className="relative h-[60dvh]">
         <MapContainer
