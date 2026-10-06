@@ -3,6 +3,7 @@ import { Search, Clock } from 'lucide-react'
 import Navbar from './Navbar'
 import Footer from './Footer'
 import About from './About'
+import Contact from './Contact'
 import { MapContainer, TileLayer, CircleMarker, Polyline, useMap } from 'react-leaflet'
 import 'leaflet/dist/leaflet.css'
 
@@ -168,11 +169,23 @@ function App() {
     }
     const goAbout = () => { setPage('about')}
 
+    const goContact = () => { setPage('contact')}
+
     if (page === 'about') {
         return (
       <>
-        <Navbar onHome={goHome} onAbout={goAbout} />
+        <Navbar onHome={goHome} onAbout={goAbout} onContact={goContact} />
         <About />
+        <Footer />
+      </>
+    )
+    }
+
+    if (page === 'contact') {
+        return (
+      <>
+        <Navbar onHome={goHome} onAbout={goAbout} onContact={goContact} />
+        <Contact />
         <Footer />
       </>
     )
