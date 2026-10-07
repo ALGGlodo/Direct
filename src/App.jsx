@@ -263,9 +263,9 @@ function App() {
           style={{ height: '100%', width: '100%' }}
         >
           <TileLayer
-            attribution="&copy; OpenStreetMap contributors &copy; CARTO"
-            url={`https://basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png?key=${import.meta.env.VITE_CARTO_KEY}`}
-            maxZoom={20}
+            attribution="&copy; OpenStreetMap contributors"
+            url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
+            maxZoom={19}
           />
           <CircleMarker center={position} radius={10} />
           {places?.start && <CircleMarker center={places.start} radius={8} pathOptions={{ color: 'green' }} />}
